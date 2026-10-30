@@ -1,0 +1,10 @@
+../Core/Src/safety_supervisor.c:10:6:SafetySupervisor_Init	4	static
+../Core/Src/safety_supervisor.c:19:6:SafetySupervisor_ArmStart	4	static
+../Core/Src/safety_supervisor.c:28:6:SafetySupervisor_ManualStop	4	static
+../Core/Src/safety_supervisor.c:34:6:SafetySupervisor_Update	24	static
+../Core/Src/safety_supervisor.c:94:6:SafetySupervisor_ProcessHostRecommendation	16	static
+../Core/Src/safety_supervisor.c:158:20:SafetySupervisor_GetState	4	static
+../Core/Src/safety_supervisor.c:162:17:SafetySupervisor_GetLastReason	4	static
+../Core/Src/safety_supervisor.c:166:6:SafetySupervisor_IsTripped	4	static
+../Core/Src/safety_supervisor.c:170:10:SafetySupervisor_GetTargetPWM	4	static
+../Core/Src/safety_supervisor.c:174:6:SafetySupervisor_IsHostConnected	16	static

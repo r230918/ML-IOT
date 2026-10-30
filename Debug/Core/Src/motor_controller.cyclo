@@ -1,0 +1,4 @@
+../Core/Src/motor_controller.c:6:6:Motor_Init	1
+../Core/Src/motor_controller.c:12:6:Motor_SetDirection	2
+../Core/Src/motor_controller.c:24:6:Motor_SetPWM	2
+../Core/Src/motor_controller.c:30:6:Motor_EmergencyBrake	1

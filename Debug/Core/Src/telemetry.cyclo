@@ -1,0 +1,4 @@
+../Core/Src/telemetry.c:8:17:CalculateCRC16	4
+../Core/Src/telemetry.c:23:6:Telemetry_Init	1
+../Core/Src/telemetry.c:27:6:Telemetry_SendFrame	2
+../Core/Src/telemetry.c:69:6:Telemetry_ParseByte	10

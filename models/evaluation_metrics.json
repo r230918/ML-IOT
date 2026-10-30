@@ -1,0 +1,21 @@
+{
+    "Baseline": {
+        "MAE": 1.838,
+        "RMSE": 2.044,
+        "R2": -0.357,
+        "Missed_Unsafe": 2,
+        "Unnecessary_Conservative": 6
+    },
+    "Ridge_Regressor": {
+        "MAE": 0.043,
+        "RMSE": 0.048,
+        "R2": 0.999
+    },
+    "Random_Forest": {
+        "MAE": 0.047,
+        "RMSE": 0.068,
+        "R2": 0.998,
+        "Missed_Unsafe": 0,
+        "Unnecessary_Conservative": 0
+    }
+}
