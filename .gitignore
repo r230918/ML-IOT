@@ -1,0 +1,15 @@
+# Build artifacts and intermediate files
+*.o
+*.d
+*.su
+*.cyclo
+*.map
+*.list
+build/*.o
+Debug/Core/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
