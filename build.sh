@@ -8,6 +8,7 @@ SRCS=(
     "Core/Src/main.c"
     "Core/Src/safety_supervisor.c"
     "Core/Src/telemetry.c"
+    "Core/Src/l293d.c"
     "Core/Src/motor_controller.c"
     "Core/Src/sensor_acquisition.c"
     "Core/Src/stm32f4xx_it.c"
