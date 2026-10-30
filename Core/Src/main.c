@@ -236,7 +236,7 @@ int main(void) {
             /* Refresh 16x2 LCD Display every 400 ms */
             if (now - lastLcdTick >= 400) {
                 lastLcdTick = now;
-                char l1[17], l2[17];
+                char l1[32], l2[32];
                 MotorSystemState_t st = SafetySupervisor_GetState();
                 const char *st_str = "STOPPED";
                 if (st == STATE_RUNNING) st_str = "ROTATING";

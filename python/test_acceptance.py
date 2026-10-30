@@ -8,8 +8,8 @@ def run_acceptance_suite():
     print("VARIANT 02.07: SUPPLY-SAG EMULATOR - ACCEPTANCE TEST SUITE")
     print("=" * 70)
 
-    engine = SupplySagDecisionEngine(model_path="../models/model_random_forest.joblib")
-    df_samples = pd.read_csv("../data/seed_data_runs.csv")
+    engine = SupplySagDecisionEngine(model_path=os.path.join(os.path.dirname(__file__), "..", "models", "model_random_forest.joblib"))
+    df_samples = pd.read_csv(os.path.join(os.path.dirname(__file__), "..", "data", "seed_data_runs.csv"))
 
     test_cases = [
         {"type": "Reference Run", "cond_id": 0, "expected_action": "ACCEPT_START", "desc": "Nominal 12V Supply, standard inertia"},
