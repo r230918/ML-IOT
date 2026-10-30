@@ -6,12 +6,26 @@ extern TIM_HandleTypeDef htim2;
 
 static uint32_t lastEncoderCnt = 0;
 static uint32_t accumulatedPulses = 0;
+static int32_t acs712_zero_mv = 2500;
 
 void Sensors_Init(void) {
     HAL_ADC_Start(&hadc1);
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
     lastEncoderCnt = __HAL_TIM_GET_COUNTER(&htim2);
     accumulatedPulses = 0;
+
+    /* Auto-calibrate resting zero-current baseline for ACS712 on PA4 (ADC1_IN4) */
+    uint32_t sum = 0;
+    for (int i = 0; i < 16; i++) {
+        sum += ADC_ReadChannel(4);
+    }
+    uint32_t avg_raw = sum / 16;
+    int32_t measured_zero = (int32_t)(avg_raw * 3300UL / 4095UL);
+    if (measured_zero > 1500 && measured_zero < 3100) {
+        acs712_zero_mv = measured_zero; /* Valid ACS712 centered at ~2.5V */
+    } else {
+        acs712_zero_mv = 2500;
+    }
 }
 
 void Sensors_Sample(SensorData_t *data, uint32_t delta_ms) {
@@ -78,11 +92,15 @@ void Sensors_Sample(SensorData_t *data, uint32_t delta_ms) {
     /* 4. CURRENT SENSING: Hardware Reading OR Virtual Current Observer */
     /* Check physical ADC on PA4 (Pin A2, ADC1_IN4) */
     uint32_t raw_current = ADC_ReadChannel(4); 
-    
-    if (raw_current > 200 && raw_current < 3900) {
-        /* Physical current sensor present (ACS712 or Shunt Amplifier) */
-        int32_t v_current_mv = (int32_t)(raw_current * 3300UL / 4095UL);
-        int32_t current_calc = (v_current_mv > 500) ? ((v_current_mv - 500) * 1000 / 660) : 0;
+    int32_t v_current_mv = (int32_t)(raw_current * 3300UL / 4095UL);
+    int32_t delta_v = v_current_mv - acs712_zero_mv;
+    if (delta_v < 0) delta_v = -delta_v;
+
+    if (raw_current > 500 && raw_current < 3900 && delta_v > 20) {
+        /* Physical ACS712 Current Sensor Active (Auto-calibrated baseline) */
+        /* Sensitivity: ~100 to 185 mV/A -> scaled to mA */
+        int32_t current_calc = (delta_v * 1000) / 100; /* mA */
+        if (current_calc > 4000) current_calc = 4000;
         data->current_ma = (int16_t)current_calc;
     } else {
         /* VIRTUAL CURRENT SENSOR (Model-Based Observer):
