@@ -20,7 +20,7 @@ void SafetySupervisor_ArmStart(void) {
     if (currentState == STATE_SAFE_REST || currentState == STATE_RETRY_BACKOFF || currentState == STATE_TRIP_SHUTDOWN) {
         currentState = STATE_STARTUP_ARMED;
         stateEntryTimeMs = 0;
-        currentTargetPWM = 400; /* Soft initial torque */
+        currentTargetPWM = 1000; /* Full 100% torque to guarantee startup even on low voltage USB */
         lastReason = REASON_ACK_ACCEPTED;
     }
 }
@@ -84,9 +84,9 @@ void SafetySupervisor_Update(int16_t current_ma, int16_t speed_rpm, int16_t temp
         }
 
         /* Transition to RUNNING state once ramped, keeping motor spinning */
-        if (elapsed > HARD_LIMIT_STARTUP_TIMEOUT_MS || currentTargetPWM >= 800) {
+        if (elapsed > HARD_LIMIT_STARTUP_TIMEOUT_MS || currentTargetPWM >= 1000) {
             currentState = STATE_RUNNING;
-            currentTargetPWM = 800;
+            currentTargetPWM = 1000;
         }
     }
 }
@@ -111,7 +111,7 @@ bool SafetySupervisor_ProcessHostRecommendation(HostRecommendation_t rec, uint16
         case HOST_REC_ACCEPT_START:
             if (currentState == STATE_STARTUP_RAMPING || currentState == STATE_RUNNING || currentState == STATE_DERATED) {
                 currentState = STATE_RUNNING;
-                currentTargetPWM = 800; /* Full nominal 80% PWM */
+                currentTargetPWM = 1000; /* Full 100% PWM */
                 lastReason = REASON_ACK_ACCEPTED;
                 return true;
             }
@@ -120,7 +120,7 @@ bool SafetySupervisor_ProcessHostRecommendation(HostRecommendation_t rec, uint16
         case HOST_REC_DERATE:
             if (currentState == STATE_RUNNING || currentState == STATE_STARTUP_RAMPING || currentState == STATE_DERATED) {
                 currentState = STATE_DERATED;
-                currentTargetPWM = 450; /* Derate to safe 45% PWM to avoid severe sag drop */
+                currentTargetPWM = 650; /* Safe derated power */
                 lastReason = REASON_ACK_ACCEPTED;
                 return true;
             }
