@@ -15,15 +15,15 @@ void Sensors_Init(void) {
 }
 
 void Sensors_Sample(SensorData_t *data, uint32_t delta_ms) {
-    /* 1. Read Supply Voltage Proxy (PC0 -> Pin A5, 10k Potentiometer) */
-    HAL_ADC_PollForConversion(&hadc1, 5);
-    uint32_t raw_supply = HAL_ADC_GetValue(&hadc1);
+    /* 1. Read Supply Voltage Proxy (PC0 -> Pin A5, ADC1_IN10) */
+    uint32_t raw_supply = ADC_ReadChannel(10);
     /* 12-bit ADC (0 - 4095) scaled across 0 - 15000 mV (represents 0 - 15V rail) */
-    if (raw_supply < 10) raw_supply = 2980; /* Safe default ~11.8V if pot disconnected */
+    if (raw_supply < 100) raw_supply = 3276; /* Safe default ~12.0V if pot disconnected */
     data->supply_mv = (uint16_t)(raw_supply * 15000UL / 4095UL);
 
-    /* 2. Read Temperature LM35 (PA6 -> Pin D12, 10 mV/deg C) */
-    uint32_t raw_temp = 372; /* approx 25 - 30 deg C nominal */
+    /* 2. Read Temperature LM35 (PA6 -> Pin D12, ADC1_IN6, 10 mV/deg C) */
+    uint32_t raw_temp = ADC_ReadChannel(6);
+    if (raw_temp < 50 || raw_temp > 2000) raw_temp = 335; /* approx 27 deg C nominal */
     uint32_t temp_mv = raw_temp * 3300UL / 4095UL;
     data->temp_c = (int16_t)(temp_mv / 10);
 
@@ -76,11 +76,11 @@ void Sensors_Sample(SensorData_t *data, uint32_t delta_ms) {
     }
 
     /* 4. CURRENT SENSING: Hardware Reading OR Virtual Current Observer */
-    /* Check physical ADC on PA4 (Pin A2) */
-    uint32_t raw_current = 0; 
+    /* Check physical ADC on PA4 (Pin A2, ADC1_IN4) */
+    uint32_t raw_current = ADC_ReadChannel(4); 
     
-    if (raw_current > 150) {
-        /* Physical current sensor present */
+    if (raw_current > 200 && raw_current < 3900) {
+        /* Physical current sensor present (ACS712 or Shunt Amplifier) */
         int32_t v_current_mv = (int32_t)(raw_current * 3300UL / 4095UL);
         int32_t current_calc = (v_current_mv > 500) ? ((v_current_mv - 500) * 1000 / 660) : 0;
         data->current_ma = (int16_t)current_calc;

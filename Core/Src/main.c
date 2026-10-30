@@ -322,6 +322,10 @@ static void MX_GPIO_Init(void) {
     GPIOC->MODER &= ~(3U << (13 * 2));
     GPIOC->PUPDR &= ~(3U << (13 * 2));
     GPIOC->PUPDR |=  (1U << (13 * 2));
+
+    /* 8. Analog Inputs: PA4 (Current Sense A2), PC0 (Supply Proxy A5), PA6 (Temp D12) */
+    GPIOA->MODER |= (3U << (4 * 2)) | (3U << (6 * 2));
+    GPIOC->MODER |= (3U << (0 * 2));
 }
 
 static void MX_USART2_UART_Init(void) {

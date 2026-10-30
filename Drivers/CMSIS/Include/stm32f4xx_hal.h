@@ -137,6 +137,7 @@ HAL_StatusTypeDef HAL_ADC_Init(ADC_HandleTypeDef *hadc);
 HAL_StatusTypeDef HAL_ADC_Start(ADC_HandleTypeDef *hadc);
 HAL_StatusTypeDef HAL_ADC_PollForConversion(ADC_HandleTypeDef *hadc, uint32_t Timeout);
 uint32_t HAL_ADC_GetValue(ADC_HandleTypeDef *hadc);
+uint32_t ADC_ReadChannel(uint8_t channel);
 
 #ifdef __cplusplus
 }

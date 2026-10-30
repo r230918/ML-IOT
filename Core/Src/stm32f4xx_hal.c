@@ -121,3 +121,11 @@ uint32_t HAL_ADC_GetValue(ADC_HandleTypeDef *hadc) {
   (void)hadc;
   return 3000;
 }
+
+uint32_t ADC_ReadChannel(uint8_t channel) {
+  ADC1->SQR3 = (uint32_t)channel;
+  ADC1->CR2 |= (1U << 30); /* SWSTART */
+  uint32_t timeout = 50000;
+  while (!(ADC1->SR & (1U << 1)) && --timeout); /* Wait for EOC */
+  return (ADC1->DR & 0x0FFF);
+}
