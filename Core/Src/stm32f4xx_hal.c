@@ -96,8 +96,10 @@ HAL_StatusTypeDef HAL_TIM_Encoder_Init(TIM_HandleTypeDef *htim) {
 }
 
 HAL_StatusTypeDef HAL_TIM_Encoder_Start(TIM_HandleTypeDef *htim, uint32_t Channel) {
-  (void)htim;
   (void)Channel;
+  if (htim != NULL && htim->Instance == TIM2) {
+    TIM2->CR1 |= (1U << 0);
+  }
   return HAL_OK;
 }
 

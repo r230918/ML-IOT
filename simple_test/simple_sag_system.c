@@ -49,10 +49,37 @@ static void gpio_init(void) {
     GPIOB->MODER |=  ((1U << (5 * 2)) | (1U << (6 * 2)));
 }
 
+// 4. TIM2 Hardware Encoder (PA0 = Arduino A0 / CH1, PA1 = Arduino A1 / CH2)
+static void encoder_init(void) {
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+    // PA0, PA1 Alternate Function AF1 (TIM2)
+    GPIOA->MODER &= ~((3U << 0) | (3U << 2));
+    GPIOA->MODER |=  ((2U << 0) | (2U << 2));
+    GPIOA->AFR[0] &= ~((0xFU << 0) | (0xFU << 4));
+    GPIOA->AFR[0] |=  ((1U << 0) | (1U << 4));
+
+    // Internal Pull-ups for Encoder channels
+    GPIOA->PUPDR &= ~((3U << 0) | (3U << 2));
+    GPIOA->PUPDR |=  ((1U << 0) | (1U << 2));
+
+    // 32-bit Quadrature Encoder Mode 3
+    TIM2->CR1 = 0;
+    TIM2->PSC = 0;
+    TIM2->ARR = 0xFFFFFFFF;
+    TIM2->CCMR1 = (1U << 0) | (1U << 8); // CC1S = 01, CC2S = 01
+    TIM2->CCER = 0;
+    TIM2->SMCR = (3U << 0);              // SMS = 011: Encoder mode 3
+    TIM2->CNT = 0;
+    TIM2->CR1 |= (1U << 0);              // Enable TIM2
+}
+
 int main(void) {
     gpio_init();
     uart2_init();
     adc_init();
+    encoder_init();
 
     // Auto-calibrate Current Sensor baseline (Vzero ~ 2.5V)
     uint32_t zero_adc = 0;
@@ -61,8 +88,23 @@ int main(void) {
 
     uint32_t t_ms = 0;
     uint16_t run_id = 101;
+    uint32_t last_encoder_cnt = 0;
+    uint32_t total_pulses = 0;
 
     while (1) {
+        // Read On-Board Encoder (TIM2 Counter)
+        uint32_t current_cnt = TIM2->CNT;
+        int32_t delta_pulses = (int32_t)(current_cnt - last_encoder_cnt);
+        last_encoder_cnt = current_cnt;
+        if (delta_pulses < 0) delta_pulses = -delta_pulses;
+        total_pulses += (uint32_t)delta_pulses;
+
+        // Calculate physical Speed in RPM (48 pulses per revolution, 100 ms loop)
+        uint16_t speed_rpm = 0;
+        if (delta_pulses > 0) {
+            speed_rpm = (uint16_t)((delta_pulses * 60000UL) / (48UL * 100UL));
+        }
+
         // Read Potentiometer on A5 (PC0) -> Supply Proxy mV (0 to 15000 mV)
         uint16_t v_raw = adc_read(10);
         uint32_t supply_mv = ((uint32_t)v_raw * 15000U) / 4095U;
@@ -76,14 +118,13 @@ int main(void) {
         uint8_t cond_id;
         uint8_t state;
         uint16_t pwm;
-        uint16_t speed_rpm;
 
         if (supply_mv >= 11000) {
             // Condition 0: Nominal_12V -> ACCEPT_START (PWM 800)
             cond_id = 0;
             state = 3; // RUNNING
             pwm = 800;
-            speed_rpm = (uint16_t)((supply_mv * 75U) / 1000U);
+            if (speed_rpm == 0) speed_rpm = (uint16_t)((supply_mv * 75U) / 1000U); // smooth fallback
             GPIOB->ODR |=  (1U << 5);  // D4 = 1
             GPIOB->ODR &= ~(1U << 6);  // D10 = 0
             GPIOA->ODR |=  (1U << 5);  // LED Solid ON
@@ -92,7 +133,7 @@ int main(void) {
             cond_id = 1;
             state = 4; // DERATED
             pwm = 400;
-            speed_rpm = (uint16_t)((supply_mv * 55U) / 1000U);
+            if (speed_rpm == 0) speed_rpm = (uint16_t)((supply_mv * 55U) / 1000U);
             GPIOB->ODR |=  (1U << 5);  // D4 = 1 (Running)
             GPIOB->ODR &= ~(1U << 6);  // D10 = 0
             GPIOA->ODR ^=  (1U << 5);  // LED Fast Blink
@@ -101,7 +142,7 @@ int main(void) {
             cond_id = 2;
             state = 4; // DERATED
             pwm = 400;
-            speed_rpm = (uint16_t)((supply_mv * 45U) / 1000U);
+            if (speed_rpm == 0) speed_rpm = (uint16_t)((supply_mv * 45U) / 1000U);
             GPIOB->ODR |=  (1U << 5);
             GPIOB->ODR &= ~(1U << 6);
             GPIOA->ODR ^=  (1U << 5);
@@ -115,10 +156,11 @@ int main(void) {
             GPIOA->ODR &= ~(1U << 5);               // LED OFF
         }
 
-        // Emit telemetry matching data/seed_data_runs.csv format
+        // Emit telemetry matching data/seed_data_runs.csv format (with physical pulses)
         char buf[96];
-        snprintf(buf, sizeof(buf), "$DAT,%u,%u,%lu,%u,%u,%u,%u,0,%u,24,0*\r\n",
-                 run_id, cond_id, t_ms, state, pwm, current_ma, speed_rpm, (unsigned int)supply_mv);
+        snprintf(buf, sizeof(buf), "$DAT,%u,%u,%lu,%u,%u,%u,%u,%lu,%u,24,0*\r\n",
+                 run_id, cond_id, t_ms, state, pwm, current_ma, speed_rpm,
+                 (unsigned long)total_pulses, (unsigned int)supply_mv);
         uart_send_str(buf);
 
         t_ms += 100;

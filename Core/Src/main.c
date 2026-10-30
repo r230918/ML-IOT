@@ -326,6 +326,14 @@ static void MX_GPIO_Init(void) {
     /* 8. Analog Inputs: PA4 (Current Sense A2), PC0 (Supply Proxy A5), PA6 (Temp D12) */
     GPIOA->MODER |= (3U << (4 * 2)) | (3U << (6 * 2));
     GPIOC->MODER |= (3U << (0 * 2));
+
+    /* 9. PA0 (Arduino A0), PA1 (Arduino A1): Alternate Function AF1 for TIM2 Encoder */
+    GPIOA->MODER &= ~((3U << (0 * 2)) | (3U << (1 * 2)));
+    GPIOA->MODER |=  ((2U << (0 * 2)) | (2U << (1 * 2))); /* AF Mode */
+    GPIOA->AFR[0] &= ~((0xFU << (0 * 4)) | (0xFU << (1 * 4)));
+    GPIOA->AFR[0] |=  ((1U << (0 * 4)) | (1U << (1 * 4))); /* AF1 = TIM2 */
+    GPIOA->PUPDR  &= ~((3U << (0 * 2)) | (3U << (1 * 2)));
+    GPIOA->PUPDR  |=  ((1U << (0 * 2)) | (1U << (1 * 2))); /* Internal Pull-Up */
 }
 
 static void MX_USART2_UART_Init(void) {
@@ -368,6 +376,16 @@ static void MX_TIM1_Init(void) {
 static void MX_TIM2_Init(void) {
     htim2.Instance = TIM2;
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+    /* Configure TIM2 as 32-bit Hardware Quadrature Encoder (Mode 3: both edges) */
+    TIM2->CR1 = 0;
+    TIM2->PSC = 0;
+    TIM2->ARR = 0xFFFFFFFF;
+    TIM2->CCMR1 = (1U << 0) | (1U << 8); /* CC1S = 01 (TI1), CC2S = 01 (TI2) */
+    TIM2->CCER = 0;                      /* Non-inverted, active high */
+    TIM2->SMCR = (3U << 0);              /* SMS = 011: Encoder mode 3 */
+    TIM2->CNT = 0;
+    TIM2->CR1 |= (1U << 0);              /* CEN = 1 (Enable counter) */
 }
 
 static void MX_ADC1_Init(void) {
